@@ -2,10 +2,15 @@ spring:
   application:
     name: ordersys
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/ordersys?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ordersys?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai}
     username: ${DB_USERNAME:ordersys}
     password: ${DB_PASSWORD:ordersys123}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 mybatis-plus:
   configuration:

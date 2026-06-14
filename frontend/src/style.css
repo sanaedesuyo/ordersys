@@ -23,10 +23,10 @@
   --status-completed: #22C55E;
   --status-cancelled: #EF4444;
 
-  /* Typography */
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-body:    'Inter', system-ui, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+  /* Typography — Latin display + CJK system fallback */
+  --font-display: 'Space Grotesk', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-body:    'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Courier New', 'PingFang SC', monospace;
 
   /* Radii */
   --radius-sm:  4px;
