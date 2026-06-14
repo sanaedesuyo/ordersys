@@ -9,14 +9,16 @@ public class PaymentContext {
     private PaymentStrategy strategy;
 
     public PaymentContext(PaymentStrategy strategy) {
+        if (strategy == null) throw new IllegalArgumentException("strategy 不能为 null");
         this.strategy = strategy;
     }
 
     public void setStrategy(PaymentStrategy strategy) {
+        if (strategy == null) throw new IllegalArgumentException("strategy 不能为 null");
         this.strategy = strategy;
     }
 
-    public PaymentResult pay(double amount, Long orderId) {
+    public PaymentResult pay(java.math.BigDecimal amount, Long orderId) {
         return strategy.pay(amount, orderId);
     }
 }
