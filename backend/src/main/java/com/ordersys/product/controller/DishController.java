@@ -24,8 +24,17 @@ public class DishController {
         if (type == null || name == null || priceObj == null) {
             return Result.error("type、name、price 不能为空");
         }
-        double price = Double.parseDouble(priceObj.toString());
-        return Result.success(dishService.createDish(type, name, description, price));
+        double price;
+        try {
+            price = Double.parseDouble(priceObj.toString());
+        } catch (NumberFormatException e) {
+            return Result.error("price 格式错误");
+        }
+        try {
+            return Result.success(dishService.createDish(type, name, description, price));
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
     }
 
     @GetMapping
