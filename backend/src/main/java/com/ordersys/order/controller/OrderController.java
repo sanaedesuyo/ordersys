@@ -41,18 +41,25 @@ public class OrderController {
         }
 
         List<CustomDish> dishes = items.stream().map(item -> {
-            Long dishId  = Long.parseLong(item.get("dishId").toString());
-            String name  = (String) item.get("dishName");
-            double price = Double.parseDouble(item.get("price").toString());
+            Object dishIdObj = item.get("dishId");
+            Object nameObj   = item.get("dishName");
+            Object priceObj  = item.get("price");
+            if (dishIdObj == null || nameObj == null || priceObj == null) {
+                throw new IllegalArgumentException("订单项缺少必填字段: dishId、dishName、price");
+            }
+            Long dishId  = Long.parseLong(dishIdObj.toString());
+            String name  = nameObj.toString();
+            double price = Double.parseDouble(priceObj.toString());
             int qty      = Integer.parseInt(item.getOrDefault("quantity", 1).toString());
             Size size    = Size.valueOf(((String) item.getOrDefault("size", "LARGE")).toUpperCase());
 
             CustomDishBuilder builder = new CustomDishBuilder(dishId, name, price)
                 .quantity(qty).size(size);
 
-            @SuppressWarnings("unchecked")
-            List<String> extras = (List<String>) item.getOrDefault("extras", List.of());
-            extras.forEach(builder::addExtra);
+            Object extrasObj = item.get("extras");
+            if (extrasObj instanceof List<?> extrasList) {
+                extrasList.forEach(e -> builder.addExtra(e.toString()));
+            }
 
             if (item.containsKey("note")) builder.note((String) item.get("note"));
             return builder.build();
