@@ -28,21 +28,54 @@
     </Transition>
 
     <!-- Demo orders panel -->
-    <div class="demo-note card" v-if="!queriedOrder">
-      <div class="demo-note-inner">
+    <div class="demo-note card">
+      <div class="demo-note-inner" v-if="!queriedOrder">
         <span class="demo-note-icon">💡</span>
         <div>
           <p class="demo-note-title">如何使用</p>
           <p class="demo-note-body">通过 <strong>新建订单</strong> 创建一笔订单，获得订单 ID 后在查询框中输入即可查看详情并进行接单、配送、完成等操作。也可直接在 <strong>菜品管理</strong> 中先创建菜品。</p>
         </div>
       </div>
-      <div class="flow-diagram">
-        <div v-for="(step, i) in flowSteps" :key="i" class="flow-step">
-          <div class="flow-badge" :class="`badge-${step.status}`">{{ step.label }}</div>
-          <span v-if="i < flowSteps.length - 1" class="flow-arrow">→</span>
+      <div class="flow-board-section">
+        <span class="section-label">各阶段订单</span>
+        <div class="flow-board">
+        <div v-for="(step, i) in flowSteps" :key="step.status" class="flow-board-col">
+          <div class="flow-board-header">
+            <span class="status-badge" :class="`badge-${step.status}`">{{ step.label }}</span>
+            <span v-if="i < flowSteps.length - 1" class="flow-board-arrow">→</span>
+          </div>
+          <div class="flow-board-body">
+            <button
+              v-for="order in ordersByStatus[step.status]"
+              :key="order.id"
+              class="order-chip"
+              :class="{ active: queriedOrder?.id === order.id }"
+              @click="selectOrder(order.id)"
+            >
+              <span class="order-chip-id mono">#{{ order.id }}</span>
+              <span class="order-chip-amount">¥{{ formatAmount(order.totalAmount) }}</span>
+            </button>
+            <span v-if="!ordersByStatus[step.status]?.length" class="flow-board-empty">暂无订单</span>
+          </div>
         </div>
-        <div class="flow-cancel">
+        <div class="flow-board-cancel">
           <span class="flow-cancel-arrow">↕ cancel（任意阶段可取消）</span>
+        </div>
+        </div>
+      </div>
+      <div v-if="cancelledOrders.length" class="flow-cancelled">
+        <span class="flow-cancelled-label">已取消</span>
+        <div class="flow-cancelled-list">
+          <button
+            v-for="order in cancelledOrders"
+            :key="order.id"
+            class="order-chip order-chip-cancelled"
+            :class="{ active: queriedOrder?.id === order.id }"
+            @click="selectOrder(order.id)"
+          >
+            <span class="order-chip-id mono">#{{ order.id }}</span>
+            <span class="order-chip-amount">¥{{ formatAmount(order.totalAmount) }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -161,7 +194,7 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, inject, computed, onMounted } from 'vue'
 import { orderApi, paymentApi } from '@/api'
 import OrderTicket from '@/components/OrderTicket.vue'
 
@@ -169,6 +202,7 @@ const toast = inject('toast')
 
 const queryId = ref('')
 const queriedOrder = ref(null)
+const allOrders = ref([])
 const showCreate = ref(false)
 const showPay = ref(false)
 const submitting = ref(false)
@@ -180,6 +214,40 @@ const flowSteps = [
   { status: 'DELIVERING', label: '配送中' },
   { status: 'COMPLETED', label: '已完成' },
 ]
+
+const ordersByStatus = computed(() => {
+  const grouped = Object.fromEntries(flowSteps.map((s) => [s.status, []]))
+  for (const order of allOrders.value) {
+    if (grouped[order.status]) grouped[order.status].push(order)
+  }
+  return grouped
+})
+
+const cancelledOrders = computed(() =>
+  allOrders.value.filter((o) => o.status === 'CANCELLED'),
+)
+
+function formatAmount(amount) {
+  return Number(amount ?? 0).toFixed(2)
+}
+
+async function fetchOrdersList() {
+  try {
+    const res = await orderApi.list()
+    if (res.code === 200) {
+      allOrders.value = res.data ?? []
+    } else {
+      toast(res.message || '加载订单列表失败', 'error')
+    }
+  } catch {
+    toast('加载订单列表失败，请确认后端已启动', 'error')
+  }
+}
+
+async function selectOrder(id) {
+  queryId.value = id
+  await fetchOrder()
+}
 
 const defaultItem = () => ({
   dishId: null,
@@ -236,6 +304,7 @@ async function createOrder() {
       queryId.value = res.data.id
       showCreate.value = false
       form.value = { userId: null, remark: '', items: [defaultItem()] }
+      await fetchOrdersList()
     } else {
       toast(res.message, 'error')
     }
@@ -259,6 +328,7 @@ async function submitPay() {
       toast(`支付${res.data.status === 'SUCCESS' ? '成功' : '失败'} — ${res.data.transactionId}`)
       showPay.value = false
       await fetchOrder()
+      await fetchOrdersList()
     } else {
       toast(res.message, 'error')
     }
@@ -275,6 +345,7 @@ async function doAction({ orderId, action }) {
     if (res.code === 200) {
       toast(`操作成功，当前状态：${res.data.status}`)
       queriedOrder.value = res.data
+      await fetchOrdersList()
     } else {
       toast(res.message, 'error')
     }
@@ -282,6 +353,8 @@ async function doAction({ orderId, action }) {
     toast('操作失败', 'error')
   }
 }
+
+onMounted(fetchOrdersList)
 </script>
 
 <style scoped>
@@ -340,22 +413,140 @@ async function doAction({ orderId, action }) {
 .demo-note-title { font-weight: 600; margin-bottom: 4px; }
 .demo-note-body { font-size: 14px; color: var(--ink-60); line-height: 1.6; }
 
-.flow-diagram {
+.flow-board-section {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 16px;
-  background: var(--surface-alt);
-  border-radius: var(--radius);
   flex-direction: column;
-  align-items: flex-start;
+  gap: 10px;
 }
 
-.flow-step { display: flex; align-items: center; gap: 6px; }
-.flow-arrow { color: var(--ink-30); font-size: 13px; }
-.flow-cancel { margin-top: 8px; }
+.flow-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  position: relative;
+}
+
+.flow-board-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 120px;
+  padding: 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.flow-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.flow-board-arrow {
+  color: var(--ink-30);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.flow-board-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.flow-board-empty {
+  font-size: 12px;
+  color: var(--ink-30);
+  padding: 8px 0;
+}
+
+.flow-board-cancel {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
 .flow-cancel-arrow { font-size: 12px; color: var(--status-cancelled); font-family: var(--font-mono); }
+
+.order-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+  text-align: left;
+}
+
+.order-chip:hover {
+  border-color: var(--ink-30);
+  background: var(--surface);
+}
+
+.order-chip.active {
+  border-color: var(--ink);
+  background: #FFF9E6;
+}
+
+.order-chip-id {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.order-chip-amount {
+  font-size: 12px;
+  color: var(--ink-60);
+}
+
+.order-chip-cancelled {
+  opacity: 0.75;
+}
+
+.flow-cancelled {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.flow-cancelled-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--status-cancelled);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+  padding-top: 8px;
+}
+
+.flow-cancelled-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.flow-cancelled-list .order-chip {
+  width: auto;
+  min-width: 120px;
+}
+
+@media (max-width: 900px) {
+  .flow-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .flow-board-arrow {
+    display: none;
+  }
+}
 
 /* Modal */
 .modal-backdrop {

@@ -99,4 +99,13 @@ public class OrderService {
         return orderItemMapper.selectList(
             new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
     }
+
+    public List<Order> listOrders(String status) {
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
+            .orderByDesc(Order::getCreateTime);
+        if (status != null && !status.isBlank()) {
+            wrapper.eq(Order::getStatus, status);
+        }
+        return orderMapper.selectList(wrapper);
+    }
 }

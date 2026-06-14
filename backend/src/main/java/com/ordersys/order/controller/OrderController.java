@@ -68,6 +68,11 @@ public class OrderController {
         return Result.success(orderService.createOrder(userId, dishes, remark));
     }
 
+    @GetMapping
+    public Result<List<Order>> listOrders(@RequestParam(required = false) String status) {
+        return Result.success(orderService.listOrders(status));
+    }
+
     @GetMapping("/{id}")
     public Result<Order> getOrder(@PathVariable Long id) {
         return Result.success(orderService.getOrderWithState(id));

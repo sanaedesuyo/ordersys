@@ -27,6 +27,7 @@ export const dishApi = {
 // Order
 export const orderApi = {
   create: (userId, data) => http.post(`/order?userId=${userId}`, data),
+  list: (status) => http.get('/order', { params: status ? { status } : {} }),
   get: (id) => http.get(`/order/${id}`),
   accept: (id) => http.put(`/order/${id}/accept`),
   deliver: (id) => http.put(`/order/${id}/deliver`),
