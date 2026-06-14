@@ -63,11 +63,11 @@ CREATE TABLE IF NOT EXISTS `payment` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Seed data
-INSERT INTO `user` (`name`, `phone`, `address`) VALUES
+INSERT IGNORE INTO `user` (`name`, `phone`, `address`) VALUES
   ('张三', '13800138001', '北京市朝阳区XXX街道1号'),
   ('李四', '13800138002', '上海市浦东新区YYY路2号');
 
-INSERT INTO `dish` (`name`, `description`, `price`, `type`) VALUES
+INSERT IGNORE INTO `dish` (`name`, `description`, `price`, `type`) VALUES
   ('红烧肉盖饭',   '经典红烧肉搭配米饭',   28.00, 'MAIN_DISH'),
   ('宫保鸡丁盖饭', '鲜嫩鸡丁，香脆花生',   25.00, 'MAIN_DISH'),
   ('珍珠奶茶',     '台式手工珍珠奶茶',      12.00, 'BEVERAGE'),
