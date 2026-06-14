@@ -20,7 +20,11 @@ public class DishController {
         String type        = (String) body.get("type");
         String name        = (String) body.get("name");
         String description = (String) body.getOrDefault("description", "");
-        double price       = Double.parseDouble(body.get("price").toString());
+        Object priceObj    = body.get("price");
+        if (type == null || name == null || priceObj == null) {
+            return Result.error("type、name、price 不能为空");
+        }
+        double price = Double.parseDouble(priceObj.toString());
         return Result.success(dishService.createDish(type, name, description, price));
     }
 

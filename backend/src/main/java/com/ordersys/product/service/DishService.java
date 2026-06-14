@@ -13,7 +13,13 @@ import java.util.List;
 public class DishService extends ServiceImpl<DishMapper, Dish> {
 
     public Dish createDish(String type, String name, String description, double price) {
-        AbstractDish abstractDish = DishFactory.create(DishType.valueOf(type), name, description, price);
+        DishType dishType;
+        try {
+            dishType = DishType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("不支持的菜品类型: " + type);
+        }
+        AbstractDish abstractDish = DishFactory.create(dishType, name, description, price);
         Dish dish = abstractDish.toDishEntity();
         this.baseMapper.insert(dish);
         return dish;
