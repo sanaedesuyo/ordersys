@@ -1,0 +1,6 @@
+.idea/
+.claude/
+
+# MacOS
+.DS_Store
+__MACOSX__/
