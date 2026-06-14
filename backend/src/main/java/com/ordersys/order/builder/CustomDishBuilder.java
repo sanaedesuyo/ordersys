@@ -31,6 +31,7 @@ public class CustomDishBuilder {
     }
 
     public CustomDishBuilder quantity(int quantity) {
+        if (quantity < 1) throw new IllegalArgumentException("quantity 必须 >= 1，实际: " + quantity);
         this.quantity = quantity;
         return this;
     }
@@ -41,6 +42,7 @@ public class CustomDishBuilder {
     }
 
     public CustomDishBuilder addExtra(String extra) {
+        if (extra == null) throw new IllegalArgumentException("extra 不能为 null");
         this.extras.add(extra);
         return this;
     }

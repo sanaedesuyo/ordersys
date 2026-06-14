@@ -1,5 +1,7 @@
 package com.ordersys.order.builder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import java.math.BigDecimal;
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.List;
  */
 @Getter
 public class CustomDish {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final Long dishId;
     private final String dishName;
     private final BigDecimal unitPrice;
@@ -32,12 +36,10 @@ public class CustomDish {
 
     /** 将加料列表序列化为 JSON 字符串，写入 order_item.extras 列 */
     public String extrasToJson() {
-        if (extras.isEmpty()) return "[]";
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < extras.size(); i++) {
-            sb.append("\"").append(extras.get(i)).append("\"");
-            if (i < extras.size() - 1) sb.append(",");
+        try {
+            return MAPPER.writeValueAsString(extras);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("extras 序列化失败", e);
         }
-        return sb.append("]").toString();
     }
 }

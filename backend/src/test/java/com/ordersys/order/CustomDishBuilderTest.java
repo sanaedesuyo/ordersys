@@ -48,4 +48,18 @@ class CustomDishBuilderTest {
         CustomDish dish = new CustomDishBuilder(3L, "西瓜汁", 10.00).build();
         assertThat(dish.extrasToJson()).isEqualTo("[]");
     }
+
+    @Test
+    void quantity_whenZero_throwsIllegalArgument() {
+        assertThatThrownBy(() -> new CustomDishBuilder(1L, "红烧肉盖饭", 28.00).quantity(0).build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("quantity");
+    }
+
+    @Test
+    void addExtra_whenNull_throwsIllegalArgument() {
+        assertThatThrownBy(() -> new CustomDishBuilder(1L, "红烧肉盖饭", 28.00).addExtra(null).build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("extra");
+    }
 }
