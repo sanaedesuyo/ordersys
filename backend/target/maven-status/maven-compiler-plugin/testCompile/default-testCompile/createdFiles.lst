@@ -1,5 +1,0 @@
-com/ordersys/order/OrderServiceTest.class
-com/ordersys/order/OrderStateTest.class
-com/ordersys/order/CustomDishBuilderTest.class
-com/ordersys/product/DishFactoryTest.class
-com/ordersys/payment/PaymentStrategyTest.class
