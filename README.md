@@ -1,76 +1,93 @@
 # OrderSys — 外卖订单系统
 
-OrderSys 是一个外卖订单后端项目，使用了四种经典 GoF 设计模式：**状态模式、建造者模式、策略模式、工厂模式**。项目采用 Spring Boot 3 + MyBatis-Plus + MySQL，配套 Vue 3 前端。
+OrderSys 是一个前后端分离的外卖订单系统，包含**用户点餐端**与**商家后台**两个独立前端，后端基于 Spring Boot 3 提供 JWT 鉴权与角色隔离的 REST API。
+
+后端在订单、支付、菜品等核心流程中运用了四种经典 GoF 设计模式：**状态模式、建造者模式、策略模式、工厂模式**。
 
 ---
 
 ## 目录
 
-- [OrderSys — 外卖订单系统](#ordersys--外卖订单系统)
-  - [目录](#目录)
-  - [技术栈与快速启动](#技术栈与快速启动)
-    - [1. 启动数据库](#1-启动数据库)
-    - [2. 启动后端](#2-启动后端)
-    - [3. 启动前端（可选）](#3-启动前端可选)
-  - [项目结构](#项目结构)
-  - [业务全景：订单生命周期](#业务全景订单生命周期)
-  - [设计模式详解](#设计模式详解)
-    - [1. 状态模式（State）— 订单状态机](#1-状态模式state-订单状态机)
-      - [要解决的问题](#要解决的问题)
-      - [设计思路](#设计思路)
-      - [关键实现](#关键实现)
-      - [状态迁移表](#状态迁移表)
-      - [为何这样设计](#为何这样设计)
-    - [2. 建造者模式（Builder）— 定制订单项](#2-建造者模式builder-定制订单项)
-      - [要解决的问题](#要解决的问题-1)
-      - [设计思路](#设计思路-1)
-      - [关键实现](#关键实现-1)
-      - [为何这样设计](#为何这样设计-1)
-    - [3. 策略模式（Strategy）— 多渠道支付](#3-策略模式strategy-多渠道支付)
-      - [要解决的问题](#要解决的问题-2)
-      - [设计思路](#设计思路-2)
-      - [关键实现](#关键实现-2)
-      - [为何这样设计](#为何这样设计-2)
-    - [4. 工厂模式（Factory）— 菜品创建](#4-工厂模式factory-菜品创建)
-      - [要解决的问题](#要解决的问题-3)
-      - [设计思路](#设计思路-3)
-      - [关键实现](#关键实现-3)
-      - [为何这样设计](#为何这样设计-3)
-  - [模式协作关系](#模式协作关系)
-  - [数据模型](#数据模型)
-  - [API 概览](#api-概览)
-  - [测试](#测试)
-  - [扩展建议](#扩展建议)
-  - [相关文档](#相关文档)
+- [应用一览](#应用一览)
+- [功能概览](#功能概览)
+- [快速启动](#快速启动)
+- [演示账号](#演示账号)
+- [项目结构](#项目结构)
+- [架构说明](#架构说明)
+- [数据模型](#数据模型)
+- [API 概览](#api-概览)
+- [数据库迁移](#数据库迁移)
+- [设计模式](#设计模式)
+- [测试](#测试)
+- [相关文档](#相关文档)
 
 ---
 
-## 双端拆分
+## 应用一览
 
-本项目已完成管理员端与客户端拆分，详见 [`docs/split-design.md`](docs/split-design.md)。
+| 应用 | 目录 | 端口 | 角色 | 说明 |
+|------|------|------|------|------|
+| 后端 API | `backend/` | 8080 | — | Spring Boot 3 + JWT |
+| 用户点餐端 | `frontend-client/` | 5173 | `USER` | 浏览菜单、下单、支付、管理地址与账户 |
+| 商家后台 | `frontend-admin/` | 5174 | `MERCHANT` | 订单看板、菜品管理、支付流水 |
 
-| 应用 | 目录 | 端口 | 说明 |
-|------|------|------|------|
-| 后端 API | `backend/` | 8080 | Spring Boot 3，含 JWT 认证 |
-| 商家后台 | `frontend-admin/` | 5174 | 订单看板、菜品管理、支付流水 |
-| 用户点餐端 | `frontend-client/` | 5173 | 菜单浏览、下单、支付、我的订单 |
+```
+┌─────────────────┐     ┌─────────────────┐
+│ frontend-client │     │ frontend-admin  │
+│   :5173         │     │   :5174         │
+└────────┬────────┘     └────────┬────────┘
+         │  /api/client/*        │  /api/admin/*
+         └──────────┬────────────┘
+                    ▼
+            ┌───────────────┐
+            │ backend :8080 │
+            │ JWT + 角色隔离 │
+            └───────┬───────┘
+                    ▼
+            ┌───────────────┐
+            │  MySQL :3306  │
+            └───────────────┘
+```
 
-演示账号（密码均为 `password123`）：
-- 用户端：`13800138001` / `13800138002`
-- 商家端：`18888888888`
-
-> **注：** 如演示账号密码不匹配（BCrypt hash 需与运行环境一致），可通过 `POST /api/client/auth/register` 注册新用户账号；商家账号需手动在数据库中 INSERT。
+> 旧版单体前端 `frontend/` 仍保留作参考，日常开发请使用 `frontend-client` 与 `frontend-admin`。  
+> 拆分设计详见 [`docs/split-design.md`](docs/split-design.md)。
 
 ---
 
-## 技术栈与快速启动
+## 功能概览
 
-| 层级 | 技术 |
+### 用户点餐端（`frontend-client`）
+
+| 功能 | 说明 |
 |------|------|
-| 后端 | Java 17、Spring Boot 3.3、MyBatis-Plus 3.5、Spring Security、JJWT |
-| 数据库 | MySQL 8.0（Docker） |
-| 商家后台 | Vue 3、Vite（端口 `5174`） |
-| 用户点餐端 | Vue 3、Vite（端口 `5173`） |
+| 注册 / 登录 | 手机号注册，支持确认密码；JWT 持久化 |
+| 菜单浏览 | 按分类筛选、关键词搜索（仅上架菜品） |
+| 购物车 & 结算 | 选择收货地址后下单，订单记录配送地址快照 |
+| 我的地址 | 多地址管理，支持默认地址 |
+| 账户设置 | 修改姓名、手机号、密码 |
+| 我的订单 | 查看订单状态、支付、取消 |
+| 支付 | 微信 / 支付宝（Mock 策略） |
+
+### 商家后台（`frontend-admin`）
+
+| 功能 | 说明 |
+|------|------|
+| 登录 | 商家账号（`MERCHANT` 角色） |
+| 订单看板 | 按状态分组展示全部订单，含收货地址 |
+| 履约操作 | 接单 → 配送 → 完成；支持取消 |
+| 菜品管理 | 新增、搜索、编辑、上下架；6 种菜品类型 |
+| 支付流水 | 查看订单支付记录 |
+
+---
+
+## 快速启动
+
+### 环境要求
+
+- Java 17+
+- Maven 3.8+
+- Node.js 18+
+- Docker（用于 MySQL）
 
 ### 1. 启动数据库
 
@@ -79,9 +96,7 @@ cd docker
 docker compose up -d
 ```
 
-数据库初始化脚本 `docker/mysql/init.sql` 会自动建表并插入测试用户与菜品。
-
-默认连接信息：
+`docker/mysql/init.sql` 会自动建表并插入演示用户、地址与菜品。
 
 | 项 | 值 |
 |----|-----|
@@ -97,19 +112,9 @@ cd backend
 mvn spring-boot:run
 ```
 
-服务监听 `http://localhost:8080`。
+服务地址：`http://localhost:8080`
 
-### 3. 启动商家后台（可选）
-
-```bash
-cd frontend-admin
-npm install
-npm run dev
-```
-
-访问 `http://localhost:5174`，用商家账号（MERCHANT 角色）登录。
-
-### 4. 启动用户点餐端（可选）
+### 3. 启动用户点餐端
 
 ```bash
 cd frontend-client
@@ -117,544 +122,247 @@ npm install
 npm run dev
 ```
 
-访问 `http://localhost:5173`，注册或用 USER 角色账号登录。
+访问 `http://localhost:5173`
+
+### 4. 启动商家后台
+
+```bash
+cd frontend-admin
+npm install
+npm run dev
+```
+
+访问 `http://localhost:5174`
+
+---
+
+## 演示账号
+
+密码均为 `password123`：
+
+| 角色 | 手机号 | 用途 |
+|------|--------|------|
+| 用户 | `13800138001` | 点餐端登录（已有默认地址） |
+| 用户 | `13800138002` | 点餐端登录（已有默认地址） |
+| 商家 | `18888888888` | 商家后台登录 |
+
+也可在点餐端自行注册新用户。若演示账号密码不匹配（BCrypt 与运行环境不一致），后端启动时会通过 `DemoAccountInitializer` 尝试同步；亦可执行 `docker/mysql/migrate-auth.sql` 修复。
 
 ---
 
 ## 项目结构
 
-后端按**领域包**组织，每个领域内部再分层：
-
 ```
-backend/src/main/java/com/ordersys/
-├── common/                  # 通用组件（统一响应 Result、时间戳自动填充）
-├── order/
-│   ├── builder/             # 建造者模式
-│   ├── state/               # 状态模式
-│   ├── controller/
-│   ├── service/
-│   ├── entity/
-│   └── mapper/
-├── payment/
-│   ├── strategy/            # 策略模式
-│   ├── controller/
-│   ├── service/
-│   ├── entity/
-│   └── mapper/
-├── product/
-│   ├── factory/             # 工厂模式
-│   ├── controller/
-│   ├── service/
-│   ├── entity/
-│   └── mapper/
-└── user/
-    ├── controller/
-    ├── service/
-    ├── entity/
-    └── mapper/
+ordersys/
+├── backend/                  # Spring Boot 后端
+│   └── src/main/java/com/ordersys/
+│       ├── auth/             # JWT 认证（登录、注册、过滤器）
+│       ├── config/           # SecurityConfig、演示账号初始化
+│       ├── order/            # 订单（状态模式 + 建造者模式）
+│       ├── payment/          # 支付（策略模式）
+│       ├── product/          # 菜品（工厂模式）
+│       ├── user/             # 用户、多地址
+│       └── legacy/           # 旧版 API（过渡期兼容）
+├── frontend-client/          # 用户点餐端 Vue 3
+├── frontend-admin/           # 商家后台 Vue 3
+├── frontend/                 # 旧版单体前端（已弃用）
+├── docker/                   # Docker Compose + MySQL 脚本
+└── docs/                     # 设计文档
 ```
 
-**分层约定：**
+**后端分层约定：**
 
 | 层 | 职责 |
 |----|------|
-| `controller` | 接收 HTTP 请求，解析参数，返回 `Result<T>` |
-| `service` | 业务逻辑、事务边界、设计模式编排 |
-| `mapper` | MyBatis-Plus 数据访问（`BaseMapper<T>`） |
-| `entity` | 与数据库表映射的 POJO |
-| `state` / `builder` / `strategy` / `factory` | 各模式的具体实现，与领域逻辑解耦 |
+| `controller` | HTTP 入口，解析参数，返回 `Result<T>` |
+| `service` | 业务逻辑、事务、设计模式编排 |
+| `mapper` | MyBatis-Plus 数据访问 |
+| `entity` | 数据库映射 POJO |
+| `state` / `builder` / `strategy` / `factory` | 各设计模式实现 |
 
 ---
 
-## 业务全景：订单生命周期
+## 架构说明
 
-一笔订单从创建到完成，会依次经过以下状态：
+### 认证与鉴权
+
+- 登录 / 注册接口独立过滤链，无需 Token
+- 业务 API 通过 JWT 鉴权，按路径前缀区分角色：
+  - `/api/client/**` → `USER`
+  - `/api/admin/**` → `MERCHANT`
+- 客户端订单、地址等接口按 `userId` 做数据隔离
+
+### 订单生命周期
 
 ```
 待支付 → 已支付 → 制作中 → 配送中 → 已完成
-  ↕ cancel（待支付 / 已支付 / 制作中 / 配送中 均可取消 → 已取消）
+  ↕ cancel（待支付 / 已支付 / 制作中 / 配送中 可取消）
 ```
 
-对应代码中的状态枚举与类：
-
-| 状态 | 数据库值 | 状态类 |
-|------|----------|--------|
-| 待支付 | `PENDING_PAYMENT` | `PendingPaymentState` |
-| 已支付 | `PAID` | `PaidState` |
-| 制作中 | `PREPARING` | `PreparingState` |
-| 配送中 | `DELIVERING` | `DeliveringState` |
-| 已完成 | `COMPLETED` | `CompletedState` |
-| 已取消 | `CANCELLED` | `CancelledState` |
-
-完整调用链：
-
-```
-创建菜品（工厂）→ 下单（建造者 + 状态）→ 支付（策略 + 状态）→ 接单 / 配送 / 完成（状态）
-```
-
----
-
-## 设计模式详解
-
-### 1. 状态模式（State）— 订单状态机
-
-#### 要解决的问题
-
-订单在不同阶段允许的操作不同：
-
-- 「待支付」可以支付、取消，但不能接单
-- 「已支付」可以接单、取消，但不能直接完成
-- 「已完成」「已取消」是终态，任何操作都应拒绝
-
-如果用 `if-else` 或 `switch` 把规则写在 `OrderService` 里，会出现两个问题：
-
-1. **规则分散**：每新增一个状态或操作，都要改多处判断
-2. **非法迁移难防**：例如「待支付」直接调用 `complete()`，很容易在重构时漏掉校验
-
-#### 设计思路
-
-把「当前状态下能做什么」封装到**状态对象**里，`Order` 只负责持有状态并委托调用：
-
-```
-Order（上下文）  ──委托──▶  OrderState（接口）
-                              ├── PendingPaymentState
-                              ├── PaidState
-                              ├── PreparingState
-                              ├── DeliveringState
-                              ├── CompletedState
-                              └── CancelledState
-```
-
-核心约定：
-
-- 接口 `OrderState` 为每个操作提供 **default 实现**，默认抛出 `IllegalStateException`
-- 各具体状态类**只重写自己允许的操作**
-- 状态迁移通过 `order.setState(new XxxState())` 完成
-
-#### 关键实现
-
-**状态接口**（`order/state/OrderState.java`）：
-
-```java
-public interface OrderState {
-    default void pay(Order order) {
-        throw new IllegalStateException("当前状态[" + getStatusName() + "]不允许支付操作");
-    }
-    // accept / startDelivery / complete / cancel 同理……
-    String getStatusName();
-}
-```
-
-**具体状态示例**（`PendingPaymentState`）：
-
-```java
-public class PendingPaymentState implements OrderState {
-    @Override public void pay(Order order)    { order.setState(new PaidState()); }
-    @Override public void cancel(Order order) { order.setState(new CancelledState()); }
-    @Override public String getStatusName()   { return "PENDING_PAYMENT"; }
-}
-```
-
-**上下文对象**（`order/entity/Order.java`）：
-
-```java
-@TableField(exist = false)
-private OrderState state;
-
-public void setState(OrderState state) {
-    this.state = state;
-    this.status = state.getStatusName();  // 同步写入 DB 字段
-}
-```
-
-这里有一个重要工程决策：**状态对象不持久化**，数据库只存 `status` 字符串。每次从 DB 加载订单时，由 `OrderService.resolveState()` 根据字符串重建对应的状态对象。这样避免了 ORM 映射状态类的复杂性，同时保留了运行时的多态行为。
-
-**服务层编排**（`OrderService`）：
-
-```java
-// 加载时恢复状态对象
-public Order getOrderWithState(Long orderId) {
-    Order order = orderMapper.selectById(orderId);
-    order.setState(resolveState(order.getStatus()));
-    return order;
-}
-
-// 商家操作统一入口
-public Order transition(Long orderId, String action) {
-    Order order = getOrderWithState(orderId);
-    switch (action) {
-        case "accept"   -> order.getState().accept(order);
-        case "deliver"  -> order.getState().startDelivery(order);
-        case "complete" -> order.getState().complete(order);
-        case "cancel"   -> order.getState().cancel(order);
-    }
-    orderMapper.updateById(order);
-    return order;
-}
-```
-
-注意：`transition()` 里的 `switch` 只做「**操作名 → 状态方法**」的路由，**不包含任何业务规则**。规则全在状态类内部。
-
-#### 状态迁移表
-
-| 当前状态 | 允许的操作 | 迁移目标 |
-|----------|-----------|----------|
-| `PendingPaymentState` | `pay`, `cancel` | `PaidState`, `CancelledState` |
-| `PaidState` | `accept`, `cancel` | `PreparingState`, `CancelledState` |
-| `PreparingState` | `startDelivery`, `cancel` | `DeliveringState`, `CancelledState` |
-| `DeliveringState` | `complete`, `cancel` | `CompletedState`, `CancelledState` |
-| `CompletedState` | 无 | 终态 |
-| `CancelledState` | 无 | 终态 |
-
-#### 为何这样设计
-
-- **开闭原则**：新增状态（如「退款中」）只需新增一个 `OrderState` 实现类，不必改动其他状态的逻辑
-- **单一职责**：`OrderService` 管持久化和流程编排，状态类管规则
-- **防御式编程**：非法操作在状态层直接拒绝，调用方无需重复校验
-
----
-
-### 2. 建造者模式（Builder）— 定制订单项
-
-#### 要解决的问题
-
-用户下单时，每个菜品可以有不同的组合：
-
-- 份量：大份 / 小份
-- 加料：加辣、加蛋……
-- 数量、备注
-
-如果为 `CustomDish` 写多个构造函数（`(id, name, price)`、`(id, name, price, size)`、`(id, name, price, size, extras)`……），会产生**构造函数爆炸**，且难以保证对象创建后的一致性。
-
-#### 设计思路
-
-用 **Builder** 提供流式 API，分步设置可选参数，最后 `build()` 产出不可变产品对象：
-
-```
-CustomDishBuilder  ──build()──▶  CustomDish（值对象）
-   .size(LARGE)
-   .addExtra("加辣")
-   .note("不要香菜")
-```
-
-#### 关键实现
-
-**建造者**（`order/builder/CustomDishBuilder.java`）：
-
-```java
-public CustomDishBuilder quantity(int quantity) {
-    if (quantity < 1) throw new IllegalArgumentException("quantity 必须 >= 1");
-    this.quantity = quantity;
-    return this;  // 链式调用
-}
-
-public CustomDish build() {
-    return new CustomDish(dishId, dishName, unitPrice, quantity, size, extras, note);
-}
-```
-
-**产品（值对象）**（`order/builder/CustomDish.java`）：
-
-- 构造函数为**包私有**，外部无法 `new CustomDish(...)`，只能通过 Builder 创建
-- 字段全部 `final`，`extras` 用 `List.copyOf()` 防止外部修改
-- `extrasToJson()` 将加料序列化后写入 `order_item.extras` 列
-
-**调用入口**（`OrderController.createOrder()`）：
-
-```java
-CustomDishBuilder builder = new CustomDishBuilder(dishId, name, price)
-    .quantity(qty).size(size);
-extrasList.forEach(e -> builder.addExtra(e.toString()));
-if (item.containsKey("note")) builder.note((String) item.get("note"));
-return builder.build();
-```
-
-**消费方**（`OrderService.createOrder()`）：
-
-```java
-order.setState(new PendingPaymentState());  // 初始状态
-// 将 CustomDish 快照写入 order_item（菜名、单价、规格、加料）
-```
-
-#### 为何这样设计
-
-- **可读性**：`.size(LARGE).addExtra("加辣").note("不要香菜")` 比一长串构造参数更清晰
-- **校验前置**：`quantity` 合法性在 Builder 阶段就拦截，不会产出非法对象
-- **与菜单解耦**：`CustomDish` 是订单快照的值对象，不映射数据库表；即使日后菜单改价，历史订单数据不受影响
-
----
-
-### 3. 策略模式（Strategy）— 多渠道支付
-
-#### 要解决的问题
-
-系统需要支持微信、支付宝等多种支付方式。它们的调用流程、签名规则、回调处理各不相同。如果把所有逻辑塞进 `PaymentService` 的一个大 `if-else`，会导致：
-
-1. 每新增一种支付方式都要改 `PaymentService`
-2. 支付逻辑与订单逻辑耦合
-3. 难以单独测试某一种支付渠道
-
-#### 设计思路
-
-把每种支付方式封装为独立策略，由上下文统一调度：
-
-```
-PaymentService
-    └── PaymentContext（上下文）
-            └── PaymentStrategy（接口）
-                    ├── WechatPayStrategy
-                    └── AlipayStrategy
-```
-
-调用方只关心「用什么方式付多少钱」，不关心具体实现。
-
-#### 关键实现
-
-**策略接口**（`payment/strategy/PaymentStrategy.java`）：
-
-```java
-public interface PaymentStrategy {
-    PaymentResult pay(BigDecimal amount, Long orderId);
-    String getMethodName();
-}
-```
-
-**具体策略**（`WechatPayStrategy`，Mock 实现）：
-
-```java
-public PaymentResult pay(BigDecimal amount, Long orderId) {
-    String txId = "WECHAT_" + UUID.randomUUID()...;
-    return PaymentResult.success(txId, getMethodName());
-}
-```
-
-**上下文**（`payment/strategy/PaymentContext.java`）：
-
-```java
-public PaymentResult pay(BigDecimal amount, Long orderId) {
-    return strategy.pay(amount, orderId);
-}
-```
-
-**服务层选择策略**（`PaymentService.pay()`）：
-
-```java
-PaymentStrategy strategy = switch (method.toUpperCase()) {
-    case "WECHAT" -> new WechatPayStrategy();
-    case "ALIPAY" -> new AlipayStrategy();
-    default -> throw new IllegalArgumentException("不支持的支付方式: " + method);
-};
-PaymentContext ctx = new PaymentContext(strategy);
-PaymentResult result = ctx.pay(amount, orderId);
-```
-
-支付成功后，通过 `orderService.markPaid(orderId)` **桥接状态模式**，触发 `PendingPaymentState.pay()` → `PaidState`。
-
-#### 为何这样设计
-
-- **开闭原则**：接入银联、Apple Pay 只需新增一个 `PaymentStrategy` 实现
-- **职责分离**：`PaymentService` 管持久化与事务；策略类管渠道逻辑
-- **可测试性**：`PaymentStrategyTest` 可独立验证各策略行为，无需启动完整支付链路
-
-> 当前实现为 Mock（生成假流水号），便于本地开发与教学演示。接入真实网关时，只需替换策略实现，上层代码不变。
-
----
-
-### 4. 工厂模式（Factory）— 菜品创建
-
-#### 要解决的问题
-
-菜品分为主食（`MAIN_DISH`）、饮品（`BEVERAGE`）、甜点（`DESSERT`）三类。调用方在创建菜品时，不应关心具体实例化哪个子类，也不应绕过公共校验逻辑。
-
-#### 设计思路
-
-采用**静态工厂方法**（Static Factory Method）：调用方传入 `DishType`，工厂负责选择具体类、校验、转换为持久化实体。
-
-```
-DishController → DishService → DishFactory.create(type, ...)
-                                    ├── MainDish
-                                    ├── Beverage
-                                    └── Dessert
-                                        └── validate() → toDishEntity() → Dish
-```
-
-#### 关键实现
-
-**抽象产品**（`product/factory/AbstractDish.java`）：
-
-```java
-public abstract class AbstractDish {
-    public void validate() {
-        if (name == null || name.isBlank())
-            throw new IllegalArgumentException(type.name() + " 名称不能为空");
-        if (price.compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("价格必须大于0");
-    }
-
-    public Dish toDishEntity() {
-        Dish dish = new Dish();
-        dish.setName(name);
-        dish.setType(type.name());
-        dish.setStatus(1);  // 默认上架
-        return dish;
-    }
-}
-```
-
-**具体产品**（以 `MainDish` 为例）：
-
-```java
-public class MainDish extends AbstractDish {
-    public MainDish(String name, String description, double price) {
-        super(name, description, price, DishType.MAIN_DISH);
-    }
-}
-```
-
-**工厂**（`product/factory/DishFactory.java`）：
-
-```java
-public class DishFactory {
-    private DishFactory() {}  // 禁止实例化
-
-    public static AbstractDish create(DishType type, String name, String description, double price) {
-        AbstractDish dish = switch (type) {
-            case MAIN_DISH -> new MainDish(name, description, price);
-            case BEVERAGE  -> new Beverage(name, description, price);
-            case DESSERT   -> new Dessert(name, description, price);
-        };
-        dish.validate();
-        return dish;
-    }
-}
-```
-
-**服务层**（`DishService.createDish()`）：
-
-```java
-AbstractDish abstractDish = DishFactory.create(dishType, name, description, price);
-Dish dish = abstractDish.toDishEntity();
-this.baseMapper.insert(dish);
-```
-
-#### 为何这样设计
-
-- **封装创建细节**：Controller 只传 `type` 字符串，不需要 `new MainDish(...)`
-- **统一校验**：`validate()` 在抽象类中定义，所有子类创建后必经校验
-- **扩展方便**：若饮品需要额外字段（容量、温度），可在 `Beverage` 子类中扩展，不影响主食和甜点
-
-> 这里用的是**简单工厂 / 静态工厂方法**，不是抽象工厂（Abstract Factory）。菜品类型之间没有「产品族」的强关联，简单工厂足够。
-
----
-
-## 模式协作关系
-
-四种模式在一条业务链上串联，但各自职责清晰、互不侵入：
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         完整下单流程                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ① 菜品管理                                                         │
-│     DishController ──▶ DishService ──▶ DishFactory（工厂）           │
-│                                        └── AbstractDish.validate()  │
-│                                                                     │
-│  ② 创建订单                                                         │
-│     OrderController ──▶ CustomDishBuilder（建造者）──▶ CustomDish   │
-│                      ──▶ OrderService.createOrder()                 │
-│                              └── setState(PendingPaymentState) 状态  │
-│                                                                     │
-│  ③ 支付                                                             │
-│     PaymentController ──▶ PaymentService                            │
-│                              ├── PaymentContext + Strategy（策略）   │
-│                              └── markPaid() ──▶ State.pay()（状态）  │
-│                                                                     │
-│  ④ 履约                                                             │
-│     OrderController ──▶ OrderService.transition()                     │
-│                              └── State.accept / deliver / complete  │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**跨模式桥接点：**
-
-| 桥接 | 说明 |
-|------|------|
-| `PaymentService` → `OrderService.markPaid()` | 支付成功后触发状态迁移，支付层不直接操作 `status` 字段 |
-| `OrderController` → `CustomDishBuilder` → `OrderService` | Controller 负责组装 Builder，Service 负责持久化与初始状态 |
-| `DishService` → `DishFactory` → `AbstractDish.toDishEntity()` | 工厂产出领域对象，再转为 MyBatis 实体入库 |
+| 状态 | 数据库值 | 用户端 | 商家端 |
+|------|----------|--------|--------|
+| 待支付 | `PENDING_PAYMENT` | 支付、取消 | 取消 |
+| 已支付 | `PAID` | 取消 | 接单、取消 |
+| 制作中 | `PREPARING` | 取消 | 开始配送、取消 |
+| 配送中 | `DELIVERING` | 取消 | 完成、取消 |
+| 已完成 | `COMPLETED` | — | — |
+| 已取消 | `CANCELLED` | — | — |
+
+### 菜品类型
+
+`MAIN_DISH`（主食）、`BEVERAGE`（饮品）、`DESSERT`（甜点）、`SNACK`（小吃）、`SIDE_DISH`（小菜）、`SOUP`（汤品）
 
 ---
 
 ## 数据模型
 
 ```
-user ──1:N──▶ order ──1:N──▶ order_item
+user ──1:N──▶ user_address
+  │
+  └──1:N──▶ order ──1:N──▶ order_item
                 │
                 └──1:1──▶ payment
 
-dish ◀──（逻辑引用，order_item 存快照）── order_item
+dish ◀──（逻辑引用，order_item 存快照）
 ```
 
 | 表 | 说明 |
 |----|------|
-| `user` | 用户（姓名、手机、地址） |
-| `dish` | 菜品目录（名称、价格、类型、上下架状态） |
-| `order` | 订单主表（用户、总金额、状态、备注） |
-| `order_item` | 订单明细（菜品快照：名称、单价、份量、加料 JSON） |
-| `payment` | 支付记录（金额、方式、流水号、结果），`order_id` 唯一 |
+| `user` | 用户（姓名、手机、角色、密码） |
+| `user_address` | 收货地址（标签、详情、是否默认） |
+| `dish` | 菜品目录（名称、价格、类型、上下架） |
+| `order` | 订单（用户、金额、状态、备注、配送地址快照） |
+| `order_item` | 订单明细（菜品快照：名称、单价、份量、加料） |
+| `payment` | 支付记录（金额、方式、流水号），`order_id` 唯一 |
 
 **设计要点：**
 
-- `order_item` 对菜品信息做**快照**（`dish_name`、`unit_price`），避免菜单变更影响历史订单
+- `order_item` 对菜品信息做快照，菜单改价不影响历史订单
+- `order.delivery_address` 下单时写入地址文本快照
 - `order.status` 存枚举字符串，运行时由 `resolveState()` 还原为状态对象
-- `payment.order_id` 有唯一约束，一笔订单对应一条支付记录
+- 状态对象不持久化，避免 ORM 映射复杂性
 
 ---
 
 ## API 概览
 
-完整接口文档见 [`docs/api.md`](docs/api.md)。
-
-| 模块 | 方法 | 路径 | 关联模式 |
-|------|------|------|----------|
-| 菜品 | `POST` | `/api/dish` | 工厂 |
-| 菜品 | `GET` | `/api/dish` | — |
-| 订单 | `POST` | `/api/order?userId=` | 建造者 + 状态 |
-| 订单 | `GET` | `/api/order` | — |
-| 订单 | `GET` | `/api/order/{id}` | 状态（重 hydration） |
-| 订单 | `PUT` | `/api/order/{id}/accept` | 状态 |
-| 订单 | `PUT` | `/api/order/{id}/deliver` | 状态 |
-| 订单 | `PUT` | `/api/order/{id}/complete` | 状态 |
-| 订单 | `PUT` | `/api/order/{id}/cancel` | 状态 |
-| 支付 | `POST` | `/api/payment` | 策略 + 状态 |
-| 用户 | `POST` | `/api/user` | — |
-| 用户 | `GET` | `/api/user/{id}` | — |
-
 统一响应格式：
 
 ```json
-{
-  "code": 200,
-  "message": "success",
-  "data": { }
-}
+{ "code": 200, "message": "success", "data": {} }
+```
+
+### 认证（无需 Token）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `POST` | `/api/client/auth/register` | 用户注册 |
+| `POST` | `/api/client/auth/login` | 用户登录 |
+| `POST` | `/api/admin/auth/login` | 商家登录 |
+
+### 用户端 `/api/client/*`（需 `USER` Token）
+
+| 模块 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 菜品 | `GET` | `/dish` | 浏览菜单（`keyword`、`type` 可选，仅上架） |
+| 菜品 | `GET` | `/dish/{id}` | 菜品详情 |
+| 订单 | `POST` | `/order` | 下单（需 `addressId`） |
+| 订单 | `GET` | `/order` | 我的订单 |
+| 订单 | `GET` | `/order/{id}` | 订单详情 |
+| 订单 | `PUT` | `/order/{id}/cancel` | 取消订单 |
+| 支付 | `POST` | `/payment` | 发起支付 |
+| 支付 | `GET` | `/payment/order/{orderId}` | 支付记录 |
+| 用户 | `GET` | `/user/me` | 当前用户信息 |
+| 用户 | `PUT` | `/user/me` | 更新姓名、手机号 |
+| 用户 | `PUT` | `/user/me/password` | 修改密码 |
+| 地址 | `GET` | `/address` | 地址列表 |
+| 地址 | `POST` | `/address` | 新增地址 |
+| 地址 | `PUT` | `/address/{id}` | 编辑地址 |
+| 地址 | `DELETE` | `/address/{id}` | 删除地址 |
+| 地址 | `PUT` | `/address/{id}/default` | 设为默认 |
+
+> `GET /api/client/dish` 无需登录即可访问。
+
+### 商家端 `/api/admin/*`（需 `MERCHANT` Token）
+
+| 模块 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 菜品 | `POST` | `/dish` | 新增菜品 |
+| 菜品 | `GET` | `/dish` | 菜品列表（含下架，`keyword`、`type` 可选） |
+| 菜品 | `GET` | `/dish/{id}` | 菜品详情 |
+| 菜品 | `PUT` | `/dish/{id}` | 编辑菜品 |
+| 订单 | `GET` | `/order` | 全部订单看板 |
+| 订单 | `GET` | `/order/{id}` | 订单详情 |
+| 订单 | `PUT` | `/order/{id}/accept` | 接单 |
+| 订单 | `PUT` | `/order/{id}/deliver` | 开始配送 |
+| 订单 | `PUT` | `/order/{id}/complete` | 完成订单 |
+| 订单 | `PUT` | `/order/{id}/cancel` | 取消订单 |
+| 支付 | `GET` | `/payment/order/{orderId}` | 支付流水 |
+
+### 旧版 API（过渡期，无鉴权）
+
+`/api/dish`、`/api/order`、`/api/user`、`/api/payment` 保留在 `legacy/` 包中，供旧版 `frontend/` 兼容使用。
+
+完整接口说明见 [`docs/api.md`](docs/api.md)（部分内容可能尚未同步最新拆分）。
+
+---
+
+## 数据库迁移
+
+全新部署直接使用 `docker/mysql/init.sql` 即可。
+
+已有数据库需按需执行迁移脚本：
+
+```bash
+# 认证字段（role、password）
+docker exec -i ordersys-mysql mysql -uroot -proot123 ordersys < docker/mysql/migrate-auth.sql
+
+# 扩展菜品类型
+docker exec -i ordersys-mysql mysql -uroot -proot123 ordersys < docker/mysql/migrate-dish-types.sql
+
+# 多地址 + 订单配送地址
+docker exec -i ordersys-mysql mysql -uroot -proot123 ordersys < docker/mysql/migrate-address.sql
 ```
 
 ---
 
-## 测试
+## 设计模式
 
-后端为每种设计模式编写了单元测试：
+后端在领域层落地了四种模式，各自职责清晰、互不侵入：
+
+```
+菜品管理  → 工厂模式（DishFactory）
+创建订单  → 建造者模式（CustomDishBuilder）+ 状态模式（PendingPaymentState）
+支付      → 策略模式（WechatPay / AlipayPay）→ 桥接状态模式（markPaid）
+履约      → 状态模式（accept / deliver / complete / cancel）
+```
+
+| 模式 | 位置 | 解决的问题 |
+|------|------|-----------|
+| **状态模式** | `order/state/` | 不同订单状态允许不同操作，避免 `if-else` 散落 |
+| **建造者模式** | `order/builder/` | 订单项多可选参数（份量、加料、备注），避免构造函数爆炸 |
+| **策略模式** | `payment/strategy/` | 多渠道支付逻辑解耦，便于扩展与单独测试 |
+| **工厂模式** | `product/factory/` | 按类型创建菜品，统一校验后转为持久化实体 |
+
+**跨模式桥接：**
+
+- `PaymentService.markPaid()` → 触发 `PendingPaymentState.pay()`，支付层不直接改 `status` 字段
+- `OrderController` 组装 `CustomDishBuilder`，`OrderService` 负责持久化与初始状态
+- `DishFactory.create()` → `AbstractDish.validate()` → `toDishEntity()` 入库
+
+> 支付策略当前为 Mock 实现（生成假流水号），接入真实网关时只需替换策略类，上层不变。
+
+---
+
+## 测试
 
 ```bash
 cd backend
 mvn test
 ```
 
-| 测试类 | 覆盖模式 |
-|--------|----------|
+| 测试类 | 覆盖 |
+|--------|------|
 | `OrderStateTest` | 状态迁移规则、非法操作拒绝 |
 | `OrderServiceTest` | 下单初始状态、金额计算 |
 | `CustomDishBuilderTest` | 建造者链式调用、参数校验 |
@@ -663,22 +371,18 @@ mvn test
 
 ---
 
-## 扩展建议
+## 相关文档
 
-若在此基础上继续演进，可参考以下方向，且大多符合现有模式结构：
-
-| 需求 | 建议做法 |
-|------|----------|
-| 新增订单状态（如「退款中」） | 新增 `OrderState` 实现类 + `resolveState()` 分支 |
-| 新增支付方式 | 新增 `PaymentStrategy` 实现，在 `PaymentService` 的 `switch` 中注册 |
-| 新增菜品类型 | 新增 `AbstractDish` 子类 + `DishFactory` 分支 |
-| 订单项更复杂（套餐、组合） | 扩展 `CustomDishBuilder` 或引入 Director 协调多步构建 |
-| 全局异常处理 | 添加 `@ControllerAdvice`，将 `IllegalStateException` 映射为 4xx 响应 |
+- [双端拆分设计](docs/split-design.md)
+- [API 接口文档](docs/api.md)
+- [后端设计规格](docs/superpowers/specs/2026-06-14-ordersys-backend-design.md)
 
 ---
 
-## 相关文档
+## 技术栈
 
-- [API 接口文档](docs/api.md)
-- [后端设计规格](docs/superpowers/specs/2026-06-14-ordersys-backend-design.md)
-- [前端说明](frontend/README.md)
+| 层级 | 技术 |
+|------|------|
+| 后端 | Java 17、Spring Boot 3.3、MyBatis-Plus 3.5、Spring Security、JJWT |
+| 数据库 | MySQL 8.0（Docker） |
+| 前端 | Vue 3、Vite、Pinia、Axios |
