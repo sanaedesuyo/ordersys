@@ -18,18 +18,12 @@
 
       <div class="field">
         <label>密码</label>
-        <div class="password-wrap">
-          <input
-            v-model="form.password"
-            :type="showPassword ? 'text' : 'password'"
-            autocomplete="current-password"
-            placeholder="请输入密码"
-            required
-          />
-          <button type="button" class="toggle-pwd" @click="showPassword = !showPassword">
-            {{ showPassword ? '隐藏' : '显示' }}
-          </button>
-        </div>
+        <PasswordInput
+          v-model="form.password"
+          autocomplete="current-password"
+          placeholder="请输入密码"
+          required
+        />
       </div>
 
       <p v-if="error" class="error-msg">{{ error }}</p>
@@ -51,6 +45,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { authApi } from '@/api'
 import AuthLayout from '@/components/AuthLayout.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -58,7 +53,6 @@ const authStore = useAuthStore()
 const form = ref({ phone: '', password: '' })
 const loading = ref(false)
 const error = ref('')
-const showPassword = ref(false)
 
 function fillDemo() {
   form.value = { phone: '18888888888', password: 'password123' }
@@ -107,31 +101,6 @@ async function handleLogin() {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.password-wrap {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.password-wrap input {
-  flex: 1;
-}
-
-.toggle-pwd {
-  flex-shrink: 0;
-  border: none;
-  background: var(--surface-alt);
-  color: var(--ink-60);
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.toggle-pwd:hover {
-  color: var(--ink);
 }
 
 .btn-full {

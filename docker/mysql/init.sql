@@ -28,6 +28,18 @@ CREATE TABLE IF NOT EXISTS `user` (
   UNIQUE KEY `uk_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `user_address` (
+  `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+  `user_id`     BIGINT       NOT NULL,
+  `label`       VARCHAR(50),
+  `detail`      VARCHAR(200) NOT NULL,
+  `is_default`  TINYINT(1)   NOT NULL DEFAULT 0,
+  `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `order` (
   `id`           BIGINT        NOT NULL AUTO_INCREMENT,
   `user_id`      BIGINT        NOT NULL,
@@ -35,6 +47,7 @@ CREATE TABLE IF NOT EXISTS `order` (
   `status`       ENUM('PENDING_PAYMENT','PAID','PREPARING','DELIVERING','COMPLETED','CANCELLED')
                                NOT NULL DEFAULT 'PENDING_PAYMENT',
   `remark`       VARCHAR(200),
+  `delivery_address` VARCHAR(200),
   `create_time`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -73,6 +86,10 @@ INSERT IGNORE INTO `user` (`name`, `phone`, `address`, `role`, `password`) VALUE
   ('张三', '13800138001', '北京市朝阳区XXX街道1号', 'USER',     '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Bwlu'),
   ('李四', '13800138002', '上海市浦东新区YYY路2号', 'USER',     '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Bwlu'),
   ('店长', '18888888888', '本店',                   'MERCHANT', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Bwlu');
+
+INSERT IGNORE INTO `user_address` (`user_id`, `label`, `detail`, `is_default`) VALUES
+  (1, '家', '北京市朝阳区XXX街道1号', 1),
+  (2, '家', '上海市浦东新区YYY路2号', 1);
 
 INSERT IGNORE INTO `dish` (`name`, `description`, `price`, `type`) VALUES
   ('红烧肉盖饭',   '经典红烧肉搭配米饭',   28.00, 'MAIN_DISH'),

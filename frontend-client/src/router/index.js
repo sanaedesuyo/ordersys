@@ -38,6 +38,16 @@ const routes = [
     component: () => import('@/views/OrderDetailView.vue'),
     meta: { title: '订单详情' },
   },
+  {
+    path: '/addresses',
+    component: () => import('@/views/AddressesView.vue'),
+    meta: { title: '我的地址' },
+  },
+  {
+    path: '/profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { title: '账户设置' },
+  },
 ]
 
 const router = createRouter({

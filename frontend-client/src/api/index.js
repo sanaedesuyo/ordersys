@@ -65,4 +65,14 @@ export const paymentApi = {
 
 export const userApi = {
   me: () => http.get('/user/me'),
+  updateProfile: (data) => http.put('/user/me', data),
+  changePassword: (data) => http.put('/user/me/password', data),
+}
+
+export const addressApi = {
+  list: () => http.get('/address'),
+  create: (data) => http.post('/address', data),
+  update: (id, data) => http.put(`/address/${id}`, data),
+  remove: (id) => http.delete(`/address/${id}`),
+  setDefault: (id) => http.put(`/address/${id}/default`),
 }

@@ -35,6 +35,10 @@
               <span class="meta-label">备注</span>
               <span class="meta-val">{{ order.remark }}</span>
             </div>
+            <div v-if="order.deliveryAddress" class="meta-item">
+              <span class="meta-label">收货地址</span>
+              <span class="meta-val">{{ order.deliveryAddress }}</span>
+            </div>
           </div>
 
           <div class="order-actions">

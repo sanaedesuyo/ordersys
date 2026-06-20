@@ -56,7 +56,7 @@ public class LegacyOrderController {
             return builder.build();
         }).toList();
 
-        return Result.success(orderService.createOrder(userId, dishes, remark));
+        return Result.success(orderService.createOrder(userId, dishes, remark, null));
     }
 
     @GetMapping

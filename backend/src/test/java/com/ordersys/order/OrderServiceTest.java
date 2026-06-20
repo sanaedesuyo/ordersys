@@ -38,7 +38,7 @@ class OrderServiceTest {
         when(orderMapper.insert(any(Order.class))).thenReturn(1);
         when(orderItemMapper.insert(any(OrderItem.class))).thenReturn(1);
 
-        Order order = orderService.createOrder(1L, dishes, "测试备注");
+        Order order = orderService.createOrder(1L, dishes, "测试备注", "家 · 北京市朝阳区");
 
         assertThat(order.getStatus()).isEqualTo("PENDING_PAYMENT");
         assertThat(order.getState()).isInstanceOf(PendingPaymentState.class);

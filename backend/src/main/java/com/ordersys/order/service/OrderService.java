@@ -25,7 +25,7 @@ public class OrderService {
      * 创建订单，整合建造者模式（CustomDish 列表）和状态模式（初始状态 PendingPayment）。
      */
     @Transactional
-    public Order createOrder(Long userId, List<CustomDish> dishes, String remark) {
+    public Order createOrder(Long userId, List<CustomDish> dishes, String remark, String deliveryAddress) {
         BigDecimal total = dishes.stream()
             .map(d -> d.getUnitPrice().multiply(BigDecimal.valueOf(d.getQuantity())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -34,6 +34,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setTotalAmount(total);
         order.setRemark(remark);
+        order.setDeliveryAddress(deliveryAddress);
         order.setState(new PendingPaymentState());
         orderMapper.insert(order);
 

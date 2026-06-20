@@ -4,6 +4,7 @@ import com.ordersys.common.Result;
 import com.ordersys.order.builder.*;
 import com.ordersys.order.entity.Order;
 import com.ordersys.order.service.OrderService;
+import com.ordersys.user.service.UserAddressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.util.Map;
 public class ClientOrderController {
 
     private final OrderService orderService;
+    private final UserAddressService addressService;
 
     /** 下单：userId 从当前登录 Token 中取 */
     @PostMapping
@@ -24,6 +26,20 @@ public class ClientOrderController {
                                      Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
         String remark = (String) body.getOrDefault("remark", "");
+        Object addressIdObj = body.get("addressId");
+        if (addressIdObj == null) {
+            return Result.error("请选择收货地址");
+        }
+        Long addressId;
+        String deliveryAddress;
+        try {
+            addressId = Long.parseLong(addressIdObj.toString());
+            deliveryAddress = addressService.resolveDeliveryAddress(userId, addressId);
+        } catch (NumberFormatException e) {
+            return Result.error("收货地址格式错误");
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
@@ -55,7 +71,7 @@ public class ClientOrderController {
             return builder.build();
         }).toList();
 
-        return Result.success(orderService.createOrder(userId, dishes, remark));
+        return Result.success(orderService.createOrder(userId, dishes, remark, deliveryAddress));
     }
 
     /** 查询当前用户的订单列表 */

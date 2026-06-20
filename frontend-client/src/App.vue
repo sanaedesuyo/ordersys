@@ -17,9 +17,13 @@
           </RouterLink>
           <RouterLink v-if="authStore.isLoggedIn" to="/orders" class="nav-item">我的订单</RouterLink>
         </nav>
+        <nav v-if="authStore.isLoggedIn" class="top-nav top-nav-right">
+          <RouterLink to="/addresses" class="nav-item">我的地址</RouterLink>
+          <RouterLink to="/profile" class="nav-item">账户</RouterLink>
+        </nav>
         <div class="top-bar-actions">
           <template v-if="authStore.isLoggedIn">
-            <span class="user-greeting">你好，{{ authStore.name }}</span>
+            <RouterLink to="/profile" class="user-greeting">你好，{{ authStore.name }}</RouterLink>
             <button class="btn btn-ghost btn-sm" @click="handleLogout">退出</button>
           </template>
           <template v-else>
@@ -119,7 +123,10 @@ function handleLogout() {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1;
+}
+
+.top-nav-right {
+  margin-left: auto;
 }
 
 .nav-item {
@@ -163,6 +170,11 @@ function handleLogout() {
 .user-greeting {
   font-size: 13px;
   color: var(--ink-60);
+  text-decoration: none;
+}
+.user-greeting:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 .main-content {

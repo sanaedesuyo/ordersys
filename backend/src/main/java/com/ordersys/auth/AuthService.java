@@ -26,7 +26,6 @@ public class AuthService {
         User user = new User();
         user.setName(req.getName());
         user.setPhone(req.getPhone());
-        user.setAddress(req.getAddress());
         user.setRole("USER");
         user.setPassword(passwordEncoder.encode(req.getPassword()));
         userMapper.insert(user);

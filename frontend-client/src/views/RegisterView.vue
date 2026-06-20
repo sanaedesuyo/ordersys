@@ -22,27 +22,23 @@
 
       <div class="field">
         <label>密码</label>
-        <div class="password-wrap">
-          <input
-            v-model="form.password"
-            :type="showPassword ? 'text' : 'password'"
-            autocomplete="new-password"
-            placeholder="至少 6 位"
-            required
-            minlength="6"
-          />
-          <button type="button" class="toggle-pwd" @click="showPassword = !showPassword">
-            {{ showPassword ? '隐藏' : '显示' }}
-          </button>
-        </div>
+        <PasswordInput
+          v-model="form.password"
+          autocomplete="new-password"
+          placeholder="至少 6 位"
+          required
+          :minlength="6"
+        />
       </div>
 
       <div class="field">
-        <label>收货地址（选填）</label>
-        <input
-          v-model="form.address"
-          autocomplete="street-address"
-          placeholder="如：北京市朝阳区XXX路1号"
+        <label>确认密码</label>
+        <PasswordInput
+          v-model="form.confirmPassword"
+          autocomplete="new-password"
+          placeholder="再次输入密码"
+          required
+          :minlength="6"
         />
       </div>
 
@@ -66,14 +62,14 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { authApi } from '@/api'
 import AuthLayout from '@/components/AuthLayout.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const form = ref({ name: '', phone: '', password: '', address: '' })
+const form = ref({ name: '', phone: '', password: '', confirmPassword: '' })
 const loading = ref(false)
 const error = ref('')
-const showPassword = ref(false)
 
 async function handleRegister() {
   if (!form.value.name?.trim()) {
@@ -88,6 +84,10 @@ async function handleRegister() {
     error.value = '密码至少 6 位'
     return
   }
+  if (form.value.password !== form.value.confirmPassword) {
+    error.value = '两次输入的密码不一致'
+    return
+  }
 
   loading.value = true
   error.value = ''
@@ -96,7 +96,6 @@ async function handleRegister() {
       name: form.value.name.trim(),
       phone: form.value.phone.trim(),
       password: form.value.password,
-      address: form.value.address?.trim() || '',
     })
     if (res.code === 200) {
       authStore.setAuth(res.data)
@@ -130,31 +129,6 @@ function extractError(err) {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-.password-wrap {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.password-wrap input {
-  flex: 1;
-}
-
-.toggle-pwd {
-  flex-shrink: 0;
-  border: none;
-  background: var(--surface-alt);
-  color: var(--ink-60);
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.toggle-pwd:hover {
-  color: var(--ink);
 }
 
 .btn-full {

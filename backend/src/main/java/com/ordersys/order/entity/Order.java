@@ -15,6 +15,7 @@ public class Order {
     private BigDecimal totalAmount;
     private String status;
     private String remark;
+    private String deliveryAddress;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)
