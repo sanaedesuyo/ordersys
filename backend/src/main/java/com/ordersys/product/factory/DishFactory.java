@@ -11,9 +11,12 @@ public class DishFactory {
 
     public static AbstractDish create(DishType type, String name, String description, double price) {
         AbstractDish dish = switch (type) {
-            case MAIN_DISH -> new MainDish(name, description, price);
-            case BEVERAGE  -> new Beverage(name, description, price);
-            case DESSERT   -> new Dessert(name, description, price);
+            case MAIN_DISH  -> new MainDish(name, description, price);
+            case BEVERAGE   -> new Beverage(name, description, price);
+            case DESSERT    -> new Dessert(name, description, price);
+            case SNACK      -> new Snack(name, description, price);
+            case SIDE_DISH  -> new SideDish(name, description, price);
+            case SOUP       -> new Soup(name, description, price);
         };
         dish.validate();
         return dish;

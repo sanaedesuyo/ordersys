@@ -45,13 +45,32 @@ OrderSys 是一个外卖订单后端项目，使用了四种经典 GoF 设计模
 
 ---
 
+## 双端拆分
+
+本项目已完成管理员端与客户端拆分，详见 [`docs/split-design.md`](docs/split-design.md)。
+
+| 应用 | 目录 | 端口 | 说明 |
+|------|------|------|------|
+| 后端 API | `backend/` | 8080 | Spring Boot 3，含 JWT 认证 |
+| 商家后台 | `frontend-admin/` | 5174 | 订单看板、菜品管理、支付流水 |
+| 用户点餐端 | `frontend-client/` | 5173 | 菜单浏览、下单、支付、我的订单 |
+
+演示账号（密码均为 `password123`）：
+- 用户端：`13800138001` / `13800138002`
+- 商家端：`18888888888`
+
+> **注：** 如演示账号密码不匹配（BCrypt hash 需与运行环境一致），可通过 `POST /api/client/auth/register` 注册新用户账号；商家账号需手动在数据库中 INSERT。
+
+---
+
 ## 技术栈与快速启动
 
 | 层级 | 技术 |
 |------|------|
-| 后端 | Java 17、Spring Boot 3.3、MyBatis-Plus 3.5 |
+| 后端 | Java 17、Spring Boot 3.3、MyBatis-Plus 3.5、Spring Security、JJWT |
 | 数据库 | MySQL 8.0（Docker） |
-| 前端 | Vue 3、Vite（端口固定 `5173`） |
+| 商家后台 | Vue 3、Vite（端口 `5174`） |
+| 用户点餐端 | Vue 3、Vite（端口 `5173`） |
 
 ### 1. 启动数据库
 
@@ -80,15 +99,25 @@ mvn spring-boot:run
 
 服务监听 `http://localhost:8080`。
 
-### 3. 启动前端（可选）
+### 3. 启动商家后台（可选）
 
 ```bash
-cd frontend
+cd frontend-admin
 npm install
 npm run dev
 ```
 
-访问 `http://localhost:5173`，API 请求通过 Vite 代理转发到后端。
+访问 `http://localhost:5174`，用商家账号（MERCHANT 角色）登录。
+
+### 4. 启动用户点餐端（可选）
+
+```bash
+cd frontend-client
+npm install
+npm run dev
+```
+
+访问 `http://localhost:5173`，注册或用 USER 角色账号登录。
 
 ---
 

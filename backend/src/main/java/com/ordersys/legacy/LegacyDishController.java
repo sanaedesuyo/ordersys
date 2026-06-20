@@ -1,17 +1,22 @@
-package com.ordersys.product.controller;
+package com.ordersys.legacy;
 
 import com.ordersys.common.Result;
 import com.ordersys.product.entity.Dish;
 import com.ordersys.product.service.DishService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 兼容旧版 frontend/ 的菜品接口（无鉴权）。
+ * 新应用请使用 /api/client/dish 或 /api/admin/dish。
+ */
 @RestController
 @RequestMapping("/api/dish")
 @RequiredArgsConstructor
-public class DishController {
+public class LegacyDishController {
 
     private final DishService dishService;
 

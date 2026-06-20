@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `dish` (
   `name`        VARCHAR(100) NOT NULL,
   `description` VARCHAR(500),
   `price`       DECIMAL(10,2) NOT NULL,
-  `type`        ENUM('MAIN_DISH','BEVERAGE','DESSERT') NOT NULL,
+  `type`        ENUM('MAIN_DISH','BEVERAGE','DESSERT','SNACK','SIDE_DISH','SOUP') NOT NULL,
   `status`      TINYINT(1)   NOT NULL DEFAULT 1,
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -20,9 +20,12 @@ CREATE TABLE IF NOT EXISTS `user` (
   `name`        VARCHAR(50)  NOT NULL,
   `phone`       VARCHAR(20)  NOT NULL,
   `address`     VARCHAR(200),
+  `role`        ENUM('USER','MERCHANT') NOT NULL DEFAULT 'USER',
+  `password`    VARCHAR(100) NOT NULL DEFAULT '',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_phone` (`phone`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `order` (
@@ -65,9 +68,11 @@ CREATE TABLE IF NOT EXISTS `payment` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Seed data
-INSERT IGNORE INTO `user` (`name`, `phone`, `address`) VALUES
-  ('张三', '13800138001', '北京市朝阳区XXX街道1号'),
-  ('李四', '13800138002', '上海市浦东新区YYY路2号');
+-- 密码均为 password123 的 BCrypt 哈希
+INSERT IGNORE INTO `user` (`name`, `phone`, `address`, `role`, `password`) VALUES
+  ('张三', '13800138001', '北京市朝阳区XXX街道1号', 'USER',     '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Bwlu'),
+  ('李四', '13800138002', '上海市浦东新区YYY路2号', 'USER',     '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Bwlu'),
+  ('店长', '18888888888', '本店',                   'MERCHANT', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Bwlu');
 
 INSERT IGNORE INTO `dish` (`name`, `description`, `price`, `type`) VALUES
   ('红烧肉盖饭',   '经典红烧肉搭配米饭',   28.00, 'MAIN_DISH'),
@@ -75,4 +80,10 @@ INSERT IGNORE INTO `dish` (`name`, `description`, `price`, `type`) VALUES
   ('珍珠奶茶',     '台式手工珍珠奶茶',      12.00, 'BEVERAGE'),
   ('西瓜汁',       '新鲜现榨西瓜汁',        10.00, 'BEVERAGE'),
   ('芒果布丁',     '香甜芒果布丁',          15.00, 'DESSERT'),
-  ('提拉米苏',     '经典意式甜点',          18.00, 'DESSERT');
+  ('提拉米苏',     '经典意式甜点',          18.00, 'DESSERT'),
+  ('炸鸡块',       '外酥里嫩，现炸现卖',     16.00, 'SNACK'),
+  ('薯条',         '金黄酥脆薯条',           8.00, 'SNACK'),
+  ('凉拌黄瓜',     '清爽开胃小菜',           6.00, 'SIDE_DISH'),
+  ('酸辣土豆丝',   '爽脆酸辣，下饭必备',     8.00, 'SIDE_DISH'),
+  ('紫菜蛋花汤',   '家常暖胃汤品',           9.00, 'SOUP'),
+  ('番茄牛腩汤',   '浓郁番茄配软烂牛腩',    22.00, 'SOUP');

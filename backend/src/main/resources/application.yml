@@ -21,3 +21,7 @@ mybatis-plus:
 
 server:
   port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:ordersys-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+  expiration-ms: 86400000

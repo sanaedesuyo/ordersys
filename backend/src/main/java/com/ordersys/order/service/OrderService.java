@@ -108,4 +108,14 @@ public class OrderService {
         }
         return orderMapper.selectList(wrapper);
     }
+
+    public List<Order> listOrdersByUser(Long userId, String status) {
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
+            .eq(Order::getUserId, userId)
+            .orderByDesc(Order::getCreateTime);
+        if (status != null && !status.isBlank()) {
+            wrapper.eq(Order::getStatus, status);
+        }
+        return orderMapper.selectList(wrapper);
+    }
 }

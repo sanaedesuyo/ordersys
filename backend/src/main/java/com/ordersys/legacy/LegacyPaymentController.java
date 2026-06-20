@@ -1,4 +1,4 @@
-package com.ordersys.payment.controller;
+package com.ordersys.legacy;
 
 import com.ordersys.common.Result;
 import com.ordersys.payment.entity.Payment;
@@ -10,17 +10,16 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 兼容旧版 frontend/ 的支付接口（无鉴权）。
+ */
 @RestController
 @RequestMapping("/api/payment")
 @RequiredArgsConstructor
-public class PaymentController {
+public class LegacyPaymentController {
 
     private final PaymentService paymentService;
 
-    /**
-     * POST /api/payment
-     * Body: { "orderId": 1, "amount": 68.00, "method": "WECHAT" | "ALIPAY" }
-     */
     @PostMapping
     public Result<Payment> pay(@RequestBody Map<String, Object> body) {
         Object orderIdObj = body.get("orderId");
@@ -48,10 +47,6 @@ public class PaymentController {
         }
     }
 
-    /**
-     * GET /api/payment/order/{orderId}
-     * 查询某订单的支付记录列表。
-     */
     @GetMapping("/order/{orderId}")
     public Result<List<Payment>> getByOrderId(@PathVariable Long orderId) {
         return Result.success(paymentService.getByOrderId(orderId));
