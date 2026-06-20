@@ -2,7 +2,6 @@
   <AuthLayout
     title="商家后台"
     subtitle="登录后管理订单、菜品与支付流水"
-    footer="演示账号：18888888888 / password123"
   >
     <form class="auth-form" @submit.prevent="handleLogin">
       <div class="field">
@@ -31,10 +30,6 @@
       <button type="submit" class="btn btn-primary btn-full" :disabled="loading">
         {{ loading ? '登录中…' : '登录后台' }}
       </button>
-
-      <button type="button" class="btn btn-ghost btn-full" @click="fillDemo">
-        填入演示账号
-      </button>
     </form>
   </AuthLayout>
 </template>
@@ -53,11 +48,6 @@ const authStore = useAuthStore()
 const form = ref({ phone: '', password: '' })
 const loading = ref(false)
 const error = ref('')
-
-function fillDemo() {
-  form.value = { phone: '18888888888', password: 'password123' }
-  error.value = ''
-}
 
 function extractError(err) {
   const data = err.response?.data

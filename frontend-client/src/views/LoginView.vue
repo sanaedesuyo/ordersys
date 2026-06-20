@@ -2,7 +2,6 @@
   <AuthLayout
     title="欢迎回来"
     subtitle="登录后即可下单、支付并查看订单"
-    footer="演示账号：13800138001 / password123"
   >
     <form class="auth-form" @submit.prevent="handleLogin">
       <div class="field">
@@ -31,10 +30,6 @@
       <button type="submit" class="btn btn-primary btn-full" :disabled="loading">
         {{ loading ? '登录中…' : '登录' }}
       </button>
-
-      <button type="button" class="btn btn-ghost btn-full" @click="fillDemo">
-        填入演示账号
-      </button>
     </form>
 
     <p class="auth-switch">
@@ -59,11 +54,6 @@ const authStore = useAuthStore()
 const form = ref({ phone: '', password: '' })
 const loading = ref(false)
 const error = ref('')
-
-function fillDemo() {
-  form.value = { phone: '13800138001', password: 'password123' }
-  error.value = ''
-}
 
 function extractError(err) {
   const data = err.response?.data
